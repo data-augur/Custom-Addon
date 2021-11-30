@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-  <title>BEE Plugin - Integration Example</title>
+  <title>BEE Plugin</title>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style type="text/css">
@@ -54,6 +54,9 @@
 <script src="https://app-rsrc.getbee.io/plugin/BeePlugin.js"></script>
 
 <script type="text/javascript">
+ /////////////////////////////////////////////////////////////////////////////////////////
+ ///-------REQUEST FUNCTION DEFINITION TO VALIDATE USER ON LOAD BEEFREE PLUGIN ------////
+/////////////////////////////////////////////////////////////////////////////////////////
 
   var request = function (method, url, data, type, callback) {
     var req = new XMLHttpRequest();
@@ -82,6 +85,10 @@
 
     req.send(data);
   };
+  /////////////////////////////////////////////////////////////////////////////////////////
+ //////-----------------SAVE FUNCTION TO SAVE TEMPLATE-------------------------- /////////
+/////////////////////////////////////////////////////////////////////////////////////////
+
 
   var save = function (filename, content) {
     saveAs(
@@ -90,101 +97,86 @@
     );
   };
 
-  var specialLinks = [{
-    type: 'unsubscribe',
-    label: 'SpecialLink.Unsubscribe',
-    link: 'http://[unsubscribe]/'
-  }, {
-    type: 'subscribe',
-    label: 'SpecialLink.Subscribe',
-    link: 'http://[subscribe]/'
-  }];
+ 
 
-  var mergeTags = [{
-    name: 'tag 1',
-    value: '[tag1]'
-  }, {
-    name: 'tag 2',
-    value: '[tag2]'
-  }];
-
-  var mergeContents = [{
-    name: 'content 1',
-    value: '[content1]'
-  }, {
-    name: 'content 2',
-    value: '[content1]'
-  }];
-
-  function userInput(message, sample) {
-    return function handler(resolve, reject) {
-      var data = prompt(message, JSON.stringify(sample))
-      return (data == null || data == '')
-        ? reject()
-        : resolve(JSON.parse(data))
-    }
-  }
+  
+ /////////////////////////////////////////////////////////////////////////////////////////
+ ////------------DEFINING BEE FREE ADDONS CONFIGURATION PARAMETERS --------------/////////
+/////////////////////////////////////////////////////////////////////////////////////////
 
   var beeConfig = {
-    uid: 'test1-clientside',
+    uid: 'test1-clientsides',
     container: 'bee-plugin-container',
     autosave: 15,
     language: 'en-US',
     trackChanges: true,
-    specialLinks: specialLinks,
-    mergeTags: mergeTags,
-    mergeContents: mergeContents,
     contentDialog: {
+      addOn: {
+        handler: (resolve, reject, args) => {
+          const { contentDialogId, value } = args
+            if(contentDialogId=="QR"){
+              let htmls=qrGenerators();            
+              resolve( {
+                "type": "html",
+                "value": {
+                  html: htmls,
+                  }
+              }) 
+            }
+            else if (contentDialogId=="CountDown"){
+            let counts=countDownTimer();
+            resolve( {
+                "type": "html",
+                "value": {
+                  html: counts,
+                  }
+              }) 
+            }
+            else
+            reject({
+                "type": "html",
+                "value": {
+                  html: 'Addon not loading Properly',
+                  }
+              })
+        },
+      },
       specialLinks: {
-        label: 'Add a custom Special Link',
-        handler: userInput('Enter the deep link:', {
+    label: 'Add an Example Link',
+    handler: function(resolve, reject) {
+      resolve({
           type: 'custom',
           label: 'external special link',
-          link: 'http://www.example.com'
+          link: 'http://www.google.com'
         })
-      },
-      mergeTags: {
-        label: 'Add custom tag 2',
-        handler: userInput('Enter the merge tag:', {
-          name: 'name',
-          value: '[name]'
-        })
-      },
-      mergeContents: {
-        label: 'Choose a custom merge content',
-        handler: userInput('Enter the merge content:', {
-          name: 'my custom content',
-          value: '{my-custom-content}'
-        })
-      },
-      rowDisplayConditions: {
-        label: 'Open builder',
-        handler: userInput('Enter the row display condition:', {
-          type: 'People',
-          label: 'Person is a developer',
-          description: 'Check if a person is a developer',
-          before: "{if job == 'developer'}",
-          after: '{endif}'
-        })
-      },
+      }
+    },addOns: [
+  {
+    enabled: true,
+    id: "", 
+    label: 'Default title label override',
+    ctaLabel: 'Default CTA label override',
+    placeholder: 'Default stage placeholder override',       
+  },
+  {
+    enabled: false,
+    id: "",
+  }
+]
+      
     },
-    onChange: function (jsonFile, response) {
-      console.log('json', jsonFile);
-      console.log('response', response);
-    },
+  
     onSave: function (jsonFile, htmlFile) {
       save('newsletter.html', htmlFile);
     },
-    onSaveAsTemplate: function (jsonFile) { // + thumbnail? 
+    onSaveAsTemplate: function (jsonFile) { 
       save('newsletter-template.json', jsonFile);
     },
-    onAutoSave: function (jsonFile) { // + thumbnail? 
+    onAutoSave: function (jsonFile) { 
       console.log(new Date().toISOString() + ' autosaving...');
       window.localStorage.setItem('newsletter.autosave', jsonFile);
     },
-    onSend: function (htmlFile) {
-      //write your send test function here
-    },
+  
     onError: function (errorMessage) {
       console.log('onError ', errorMessage);
     }
@@ -207,10 +199,14 @@
 
   document.getElementById('choose-template').addEventListener('change', loadTemplate, false);
 
+ /////////////////////////////////////////////////////////////////////////////////////////
+ ////----------CALLING REQUEST FUNCTION TO VALIDATE USER ---------------------------//////
+/////////////////////////////////////////////////////////////////////////////////////////
+
   request(
     'POST',
     'https://auth.getbee.io/apiauth',
-    'grant_type=password&client_id=YOUR_CLIENT_ID&client_secret=YOUR_CLIENT_SECRET',
+    'grant_type=password&client_id=ae32a19b-e29f-476a-a3c7-6eefef62dc23&client_secret=iWYe7FcqGp5ip5hmQLiMs46RIBvNsQIrP8ak51KIbOsGWXFsLXPC',
     'application/x-www-form-urlencoded',
     function (token) {
       BeePlugin.create(token, beeConfig, function (beePluginInstance) {
@@ -226,6 +222,190 @@
       });
     });
 
+
+ /////////////////////////////////////////////////////////////////////////////////////////
+ ////--------------------------QE CODE GENERATOR FUNCTION----------------------------/////
+/////////////////////////////////////////////////////////////////////////////////////////
+function qrGenerators() {
+
+var qr_co = prompt("Please QR Details..", "Enter QR details");
+
+  if(qr_co.type==undefined || qr_co.type=="undefined"){
+   qr_co = Math.floor((Math.random() * 99) + 1);
+  }
+
+   var qr_generator=`
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                    <title></title>
+                    <style>
+                    #qr_btn{
+                      background-color: #4CAF50; /* Green */
+                      border: none;
+                      color: white;
+                      padding: 15px 32px;
+                      text-align: center;
+                      text-decoration: none;
+                      display: inline-block;
+                      font-size: 16px;
+                    </style>
+                    </head>
+                    <script>
+
+                    <\/script>
+                    <body>
+                       <img id="qr" src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data==hh`+qr_co+`" style="display:block"><br>
+                    </body>
+                    </html>
+        `;
+        return qr_generator;
+
+}
+/*===========================QR GENERATOR FUNCTION END===================================*/
+   
+
+/////////////////////////////////////////////////////////////////////////////////////////
+/////-----------------------cOUNT DOWN TIMER FUNCTION ---------------------------////////
+/////////////////////////////////////////////////////////////////////////////////////////
+
+function countDownTimer() {
+var times = prompt("Enter Time in Mins", "0");
+var countdownadon=`
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                  <meta name="viewport" content="width=device-width, initial-scale=1">
+                  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"><\/script>
+                  <style>
+                  body {font-family: Arial, Helvetica, sans-serif;}
+
+                  /* The Modal (background) */
+                  .modal {
+                    display: none; /* Hidden by default */
+                    position: fixed; /* Stay in place */
+                    z-index: 1; /* Sit on top */
+                    padding-top: 100px; /* Location of the box */
+                    left: 0;
+                    top: 0;
+                    width: 100%; /* Full width */
+                    height: 100%; /* Full height */
+                    overflow: auto; /* Enable scroll if needed */
+                    background-color: rgb(0,0,0); /* Fallback color */
+                    background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
+                  }
+
+                  /* Modal Content */
+                  .modal-content {
+                    background-color: #fefefe;
+                    margin: auto;
+                    padding: 20px;
+                    border: 1px solid #888;
+                    width: 80%;
+                  }
+
+                  /* The Close Button */
+                  .close {
+                    color: #aaaaaa;
+                    float: right;
+                    font-size: 28px;
+                    font-weight: bold;
+                  }
+
+                  .close:hover,
+                  .close:focus {
+                    color: #000;
+                    text-decoration: none;
+                    cursor: pointer;
+                  }
+                  #tminus{
+                    border: none;
+                      width: fit-content;
+                      font-size: 30px;
+                      text-align: center;
+                  }
+                  #reset_div{
+                    margin: 10px;
+                  }
+                  </style>
+                  </head>
+                  <body>
+                  <div style="text-align:center;">
+                    <h2>Countdown Timer</h2>
+                    <!-- Trigger/Open The Modal -->
+                    <form id="countdowntimer">
+                      <input id="tminus" placeholder="00:00" />
+                      <div id="reset_div" style="display:none;">
+                        <input type="reset" value="Clear Timer" />
+                      </div>
+                    </form>
+                  </div>
+                  <!-- The Modal -->
+
+                    <!-- Modal content -->
+                      <p style="display:none;">Enter Minutes For Countdown</p>
+                    <form id="countdown" style="display:none;">
+                      <input id="request" placeholder="Enter Minutes here" />
+                    <!-- <a href="#" class="button enterTime">Submit Time</a> -->
+                    </form>
+
+                  <script>
+                  var time_to_assign=`+times+`;
+                  if (time_to_assign != null) {
+                  document.getElementById("request").innerHTML = time_to_assign;
+                  var reqVal = time_to_assign;
+                      var parAmt = parseInt(reqVal);
+
+                      if (timeloop) {
+                          clearTimeout(timeloop)
+                      }
+
+                      totalAmount = parAmt * 60;
+
+                      //$('#request').val(" ");
+
+                      timeSet();
+                  }
+
+                  // Get totalAmount from localStorage and if there is positive value call timeSet() immediately
+                  var totalAmount = localStorage.getItem('countDown') || 0,
+                      timeloop;
+
+                  if (totalAmount) {
+                      timeSet()
+                  }
+
+                  function timeSet () {
+                      totalAmount--;
+                      // Refresh value in localStorage
+                      localStorage.setItem('countDown', totalAmount);
+
+                      // If countdown is over, then remove value from storage and clear timeout
+                      if (totalAmount < 0 ) {
+                          localStorage.removeItem('countDown');
+                          totalAmount = 0;
+                          clearTimeout(timeloop);
+                          return;
+                      }
+
+                      var minutes = parseInt(totalAmount/60);
+                      var seconds = parseInt(totalAmount%60);
+
+                      if(seconds < 10)
+                          seconds = "0"+seconds;
+
+                      $('#tminus').val(minutes + ":" + seconds);
+                      timeloop = setTimeout(timeSet, 1000);
+                  }
+                  <\/script>
+                  </body>
+                  </html>`;
+
+return countdownadon;
+
+}
+
+/*===========================COUNT DOWN TIMER FUNCTION END===================================*/
 </script>
 
 </html>
